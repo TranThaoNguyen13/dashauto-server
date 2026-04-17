@@ -11,7 +11,9 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.json({ message: "DashAuto Server is running" });
 });
-
+app.post("/api/test-post", (req, res) => {
+  res.json({ ok: true, body: req.body });
+});
 // Routes
 app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/dashboard", require("./routes/dashboard.routes"));

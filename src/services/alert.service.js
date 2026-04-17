@@ -43,6 +43,21 @@ exports.list = async ({ type, severity, status, limit = 50, offset = 0 } = {}) =
   };
 };
 
+exports.create = async ({ type, message, severity = "high", status = "open" }) => {
+  if (!type || !message) {
+    throw { status: 400, message: "Thieu type hoac message" };
+  }
+
+  const result = await db.query(
+    `INSERT INTO alerts (type, message, severity, status)
+     VALUES ($1, $2, $3, $4)
+     RETURNING id, type, message, severity, status, created_at`,
+    [type, message, severity, status]
+  );
+
+  return result.rows[0];
+};
+
 exports.resolve = async (id) => {
   const result = await db.query(
     `UPDATE alerts
