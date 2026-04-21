@@ -1,0 +1,301 @@
+{
+  "name": "KPI Alert Workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "4b47a365-8e22-4635-989f-dd08b0dfafb7",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "url": "http://172.17.0.1:5000/api/dashboard/stats",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$node[\"Login\"].json[\"token\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "3a17fe62-de2c-43ba-9938-c6ac8e49401f",
+      "name": "Get Stats"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://172.17.0.1:5000/api/auth/login",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "a79a192c-4f3e-439c-82a2-08a32e1404a8",
+      "name": "Login",
+      "notes": "Login"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nconst revenueThreshold = 999999999;\nconst openAlertsThreshold = 4;\n\nlet alerts = [];\n\nif (Number(data.totalRevenue) < revenueThreshold) {\n  alerts.push({\n    type: \"revenue\",\n    message: `Doanh thu thấp: ${data.totalRevenue} < ${revenueThreshold}`,\n    severity: \"high\"\n  });\n}\n\nif (Number(data.openAlerts) > openAlertsThreshold) {\n  alerts.push({\n    type: \"system\",\n    message: `Số cảnh báo mở cao: ${data.openAlerts} > ${openAlertsThreshold}`,\n    severity: \"medium\"\n  });\n}\n\nreturn [\n  {\n    json: {\n      ...data,\n      alert_count: alerts.length,\n      alerts\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "c8f29827-1994-4108-97cc-466a1edbeb19",
+      "name": "Check Alert"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d00f5f4c-39c7-4926-b277-863c6cc8068f",
+              "leftValue": "={{$json.alert_count}}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        832,
+        0
+      ],
+      "id": "10713ecc-627b-47c3-b24e-68a19f18d3fc",
+      "name": "Has Alert?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nconst detail = data.alerts.map((a, i) => {\n  return `${i + 1}. ${a.message}`;\n}).join('\\n');\n\nreturn [\n  {\n    json: {\n      ...data,\n      final_message:\n`[CANH BAO KPI]\nDoanh thu: ${data.totalRevenue}\nSo don: ${data.totalOrders}\nSo canh bao dang mo: ${data.openAlerts}\n\nChi tiet:\n${detail}`\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        -96
+      ],
+      "id": "d7f65a95-8a2c-46d6-9173-b3d5ef40ec90",
+      "name": "Format Message"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://172.17.0.1:5000/api/alerts",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$node[\"Login\"].json[\"token\"]}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"system\",\n  \"message\": \"={{$json.final_message.replace(/\\n/g, ' ')}}\",\n  \"severity\": \"high\",\n  \"status\": \"open\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1248,
+        -96
+      ],
+      "id": "bdcb9c40-73ac-4c08-bac3-5f50b1f11bff",
+      "name": "Create Alert"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "13e3cdf1-59eb-41a7-94a7-7c7ef339626c",
+              "name": "status",
+              "value": "no alert",
+              "type": "string"
+            },
+            {
+              "id": "cba44f5b-5a1c-4d1a-abe3-9b92ad6ba9e1",
+              "name": "message",
+              "value": "KPI binh thuong, khong tao canh bao",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1040,
+        96
+      ],
+      "id": "3fc94efc-25be-4f96-828d-5e074e948e80",
+      "name": "No Alert"
+    },
+    {
+      "parameters": {
+        "fromEmail": "thaonguyen13625@gmail.com",
+        "toEmail": "thaonguyen13625@gmail.com",
+        "subject": "[Cảnh báo KPI] Hệ thống phát hiện bất thường",
+        "html": "=He thong vua phat hien canh bao KPI:\n\n{{$node[\"Format Message\"].json[\"final_message\"]}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1456,
+        -96
+      ],
+      "id": "7de79361-4e90-463f-b319-57c243250d36",
+      "name": "Send Alert Email",
+      "webhookId": "e4fae257-bc7b-4564-86b4-eadf9d2658f1",
+      "credentials": {
+        "smtp": {
+          "id": "FnmwwXaNAMfgYptp",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Login",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Login": {
+      "main": [
+        [
+          {
+            "node": "Get Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Stats": {
+      "main": [
+        [
+          {
+            "node": "Check Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Alert": {
+      "main": [
+        [
+          {
+            "node": "Has Alert?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Alert?": {
+      "main": [
+        [
+          {
+            "node": "Format Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Message": {
+      "main": [
+        [
+          {
+            "node": "Create Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Alert": {
+      "main": [
+        [
+          {
+            "node": "Send Alert Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "cbdd24b4-4ef2-407e-9693-e26ad0cb3dbb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "af6f67dabcc2f250a916c1b128fb0a7fc94319c06c2217b224ef45cc4c384407"
+  },
+  "id": "71uIXjrdY3uae133",
+  "tags": []
+}
