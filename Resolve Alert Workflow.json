@@ -1,0 +1,263 @@
+{
+  "name": "Resolve Alert Workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ab5d7154-aab3-4a54-9e13-1ddfe3e840c5",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://172.17.0.1:5000/api/auth/login",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "42f82a20-3f13-41c4-a7d6-536eecb007dc",
+      "name": "Login"
+    },
+    {
+      "parameters": {
+        "url": "http://172.17.0.1:5000/api/alerts?status=open",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$node[\"Login\"].json[\"token\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "b1f07425-24df-4cdf-b55f-26510433ac94",
+      "name": "Get Open Alerts"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4cd328af-4f4b-40a9-8862-eb464e090fd2",
+              "leftValue": "={{$json[\"total\"]}}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        624,
+        0
+      ],
+      "id": "472b9148-512f-4b6a-b8a8-fa48a9a9c2ea",
+      "name": "Has Open Alert?"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=http://172.17.0.1:5000/api/alerts/{{$node[\"Get Open Alerts\"].json[\"items\"][0][\"id\"]}}/resolve",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$node[\"Login\"].json[\"token\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        832,
+        -96
+      ],
+      "id": "279e368d-9ee0-4d68-9a33-025bb5a388a3",
+      "name": "Resolve First Alert"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0e17780a-ebb9-4b97-a337-3e8b042c6d88",
+              "name": "status",
+              "value": "resolved",
+              "type": "string"
+            },
+            {
+              "id": "3ffa1014-9df8-4b52-b9d2-a38dcb0a2e84",
+              "name": "message",
+              "value": "=Da xu ly canh bao id {{$node[\"Get Open Alerts\"].json[\"items\"][0][\"id\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "9f41e03b-c317-4607-8a51-26e6d331da70",
+              "name": "resolved_at",
+              "value": "={{$json[\"resolved_at\"]}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1040,
+        -96
+      ],
+      "id": "3977cad1-58a5-454e-8de0-0cc1cb19588f",
+      "name": "Resolve Result"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ca6dd015-b0f8-4e84-895e-d183f4b6ffd4",
+              "name": "status",
+              "value": "no open alert",
+              "type": "string"
+            },
+            {
+              "id": "3b826b76-75c4-4dd1-913c-d14bfd83ecfb",
+              "name": "message",
+              "value": "Khong co canh bao dang mo",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        832,
+        96
+      ],
+      "id": "14f2e3ff-9634-4f2b-a1ba-0fa969aa2d42",
+      "name": "No Open Alert"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Login",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Login": {
+      "main": [
+        [
+          {
+            "node": "Get Open Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Open Alerts": {
+      "main": [
+        [
+          {
+            "node": "Has Open Alert?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Open Alert?": {
+      "main": [
+        [
+          {
+            "node": "Resolve First Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Open Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve First Alert": {
+      "main": [
+        [
+          {
+            "node": "Resolve Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ef0bb9cb-c46b-4022-a4ea-90e43a54e385",
+  "meta": {
+    "instanceId": "af6f67dabcc2f250a916c1b128fb0a7fc94319c06c2217b224ef45cc4c384407"
+  },
+  "id": "NWluV8kO5HaeenYR",
+  "tags": []
+}
