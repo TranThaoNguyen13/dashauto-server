@@ -1,0 +1,30 @@
+pipeline {
+  agent any
+
+  stages {
+    stage('Checkout') {
+      steps {
+        git 'https://github.com/TranThaoNguyen13/dashauto-server.git'
+      }
+    }
+
+    stage('Install Dependencies') {
+      steps {
+        sh 'npm install'
+      }
+    }
+
+    stage('Check Environment') {
+      steps {
+        sh 'node -v'
+        sh 'npm -v'
+      }
+    }
+
+    stage('Verify Files') {
+      steps {
+        sh 'ls -la'
+      }
+    }
+  }
+}
