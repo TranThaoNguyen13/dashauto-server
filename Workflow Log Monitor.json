@@ -1,0 +1,163 @@
+{
+  "name": "Workflow Log Monitor",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "0359ef69-07ce-4416-8e56-012d5a3e9cbb",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://172.17.0.1:5000/api/auth/login",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "058fa0aa-ad99-4512-b5e4-5e7c9d0125e9",
+      "name": "Login"
+    },
+    {
+      "parameters": {
+        "url": "http://172.17.0.1:5000/api/workflows",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "=Authorization",
+              "value": "=Bearer {{$node[\"Login\"].json[\"token\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "c213447e-2029-4525-a75a-701545069829",
+      "name": "Get Workflow Logs"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\n// hỗ trợ nhiều dạng response\nconst items = data.items || data || [];\n\nconst logs = Array.isArray(items) ? items : [];\n\nif (logs.length === 0) {\n  return [\n    {\n      json: {\n        status: \"no logs\",\n        total: 0,\n        summary: \"Khong co workflow nao duoc ghi nhan\"\n      }\n    }\n  ];\n}\n\nconst summary = logs.slice(0, 5).map((log, i) => {\n  return `${i + 1}. ${log.workflow_name} - ${log.status} - ${log.message || \"\"}`;\n}).join('\\n');\n\nreturn [\n  {\n    json: {\n      status: \"checked\",\n      total: logs.length,\n      summary\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "b23b16c2-2e81-4ab4-959c-a52a3943723f",
+      "name": "Format Summary"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8980aa01-01da-4cd0-a1ee-8bde39d60116",
+              "name": "status",
+              "value": "={{$json.status}}",
+              "type": "string"
+            },
+            {
+              "id": "0c50ff89-d115-4755-9055-2e43f71bab94",
+              "name": "total",
+              "value": "={{$json.total}}",
+              "type": "string"
+            },
+            {
+              "id": "a99dc8a5-4fb1-4b00-abfc-041aa369e9b6",
+              "name": "summary",
+              "value": "={{$json.summary}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        832,
+        0
+      ],
+      "id": "11b423d8-adda-4214-a20b-e58a83117898",
+      "name": "Output"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Login",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Login": {
+      "main": [
+        [
+          {
+            "node": "Get Workflow Logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Workflow Logs": {
+      "main": [
+        [
+          {
+            "node": "Format Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Summary": {
+      "main": [
+        [
+          {
+            "node": "Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "8218edec-50d1-44af-a406-3a04edf65dff",
+  "meta": {
+    "instanceId": "af6f67dabcc2f250a916c1b128fb0a7fc94319c06c2217b224ef45cc4c384407"
+  },
+  "id": "QiZIDwkk7hyCAXdQ",
+  "tags": []
+}
