@@ -8,6 +8,8 @@ import Workflows from "./pages/Workflows";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Orders from "./pages/Orders";
+import Products from "./pages/Products";
+import Settings from "./pages/Settings";
 import Users from "./pages/Users";
 import Profile from "./pages/Profile";
 import AdminRoute from "./components/AdminRoute";
@@ -32,6 +34,7 @@ function App() {
           <Route path="/alerts" element={<Alerts />} />
           <Route path="/workflows" element={<Workflows />} />
           <Route path="/orders" element={<Orders />} />
+          <Route path="/products" element={<Products />} />
           <Route path="/profile" element={<Profile />} />
           <Route
             path="/users"
@@ -41,6 +44,7 @@ function App() {
               </AdminRoute>
             }
           />
+          <Route path="/settings" element={<Settings />} />
         </Route>
       </Routes>
     </BrowserRouter>

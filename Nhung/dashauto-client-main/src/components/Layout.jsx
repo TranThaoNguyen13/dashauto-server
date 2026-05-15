@@ -21,10 +21,13 @@ function Layout() {
           <NavLink to="/alerts">Canh bao</NavLink>
           <NavLink to="/workflows">Automation</NavLink>
           <NavLink to="/orders">Don hang</NavLink>
+          <NavLink to="/products">San pham</NavLink>
           {user?.role === "admin" && (
             <NavLink to="/users">Tai khoan</NavLink>
           )}
           <NavLink to="/profile">Ho so</NavLink>
+          <NavLink to="/settings">Cai dat</NavLink>
+
         </nav>
       </aside>
 
