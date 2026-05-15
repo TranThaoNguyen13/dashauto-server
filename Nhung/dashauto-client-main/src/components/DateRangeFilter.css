@@ -1,0 +1,44 @@
+.date-filter {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  background: white;
+  padding: 1rem;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.date-filter label {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  gap: 0.25rem;
+}
+
+.date-filter input[type="date"] {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.date-presets {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.date-presets button {
+  padding: 0.4rem 0.8rem;
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.date-presets button:hover {
+  background: #e0e0e0;
+}

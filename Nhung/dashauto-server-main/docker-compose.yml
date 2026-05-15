@@ -1,0 +1,50 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dashauto-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-dashauto}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dashauto123}
+      POSTGRES_DB: ${DB_NAME:-dashauto_db}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - dashauto_pgdata:/var/lib/postgresql/data
+    networks:
+      - dashauto_net
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: dashauto-n8n
+    restart: unless-stopped
+    environment:
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: ${N8N_USER:-admin}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_PASSWORD:-admin123}
+      N8N_HOST: localhost
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      WEBHOOK_URL: http://localhost:5678/
+      GENERIC_TIMEZONE: Asia/Ho_Chi_Minh
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${DB_NAME:-dashauto_db}
+      DB_POSTGRESDB_USER: ${DB_USER:-dashauto}
+      DB_POSTGRESDB_PASSWORD: ${DB_PASSWORD:-dashauto123}
+    ports:
+      - "5678:5678"
+    volumes:
+      - dashauto_n8n:/home/node/.n8n
+    depends_on:
+      - postgres
+    networks:
+      - dashauto_net
+
+volumes:
+  dashauto_pgdata:
+  dashauto_n8n:
+
+networks:
+  dashauto_net:
+    driver: bridge

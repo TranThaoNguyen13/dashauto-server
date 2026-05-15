@@ -1,0 +1,52 @@
+.workflow-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.workflow-card {
+  background: white;
+  padding: 1rem;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.workflow-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+.workflow-last {
+  font-size: 12px;
+  color: #666;
+}
+
+.workflow-status {
+  align-self: flex-start;
+}
+
+.workflow-stats {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 13px;
+  margin-top: 0.25rem;
+}
+
+.stat-ok {
+  color: #2e7d32;
+  font-weight: 500;
+}
+
+.stat-fail {
+  color: #c62828;
+  font-weight: 500;
+}
+
+.stat-total {
+  color: #999;
+}
