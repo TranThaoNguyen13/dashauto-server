@@ -17,3 +17,22 @@ exports.getSummary = async (req, res) => {
     res.status(err.status || 500).json({ message: err.message });
   }
 };
+exports.create = async (req, res) => {
+  try {
+    const workflow = {
+      workflow_name: req.body.workflow_name,
+      status: req.body.status,
+      message: req.body.message,
+      created_at: new Date(),
+    };
+
+    res.status(201).json({
+      success: true,
+      data: workflow,
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: err.message,
+    });
+  }
+};

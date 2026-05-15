@@ -7,5 +7,6 @@ router.use(authenticate);
 
 router.get("/summary", workflowController.getSummary);
 router.get("/", workflowController.list);
+router.post("/", workflowController.create);
 
 module.exports = router;
