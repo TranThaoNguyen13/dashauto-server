@@ -1,0 +1,15 @@
+# Chi dung cho Jenkins / npm run ci:smoke — khong trung container_name voi stack dev
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER:-dashauto}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dashauto123}
+      POSTGRES_DB: ${DB_NAME:-dashauto_db}
+    ports:
+      - "${CI_DB_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-dashauto} -d ${DB_NAME:-dashauto_db}"]
+      interval: 2s
+      timeout: 5s
+      retries: 20

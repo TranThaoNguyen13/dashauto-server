@@ -149,34 +149,48 @@ exports.createAlert = async (body) => {
 };
 
 exports.getRevenueComparison = async () => {
+  // So cung khung gio: hom nay tu 00:00 -> NOW vs hom qua cung do dai (khong so ca ngay hom qua)
   const result = await db.query(
     `SELECT
+       EXTRACT(EPOCH FROM (NOW() - date_trunc('day', NOW()))) / 3600.0 AS hours_elapsed,
        COUNT(*) FILTER (
-         WHERE created_at >= date_trunc('day', NOW())
+         WHERE status = 'completed'
+         AND created_at >= date_trunc('day', NOW())
        ) AS current_orders,
        COALESCE(SUM(total_amount) FILTER (
-         WHERE created_at >= date_trunc('day', NOW())
+         WHERE status = 'completed'
+         AND created_at >= date_trunc('day', NOW())
        ), 0) AS current_revenue,
        COUNT(*) FILTER (
          WHERE status = 'cancelled'
          AND created_at >= date_trunc('day', NOW())
        ) AS current_cancelled,
        COUNT(*) FILTER (
-         WHERE created_at >= date_trunc('day', NOW()) - INTERVAL '1 day'
-         AND created_at < date_trunc('day', NOW())
+         WHERE created_at >= date_trunc('day', NOW())
+       ) AS current_total_orders,
+       COUNT(*) FILTER (
+         WHERE status = 'completed'
+         AND created_at >= date_trunc('day', NOW()) - INTERVAL '1 day'
+         AND created_at < date_trunc('day', NOW()) - INTERVAL '1 day'
+           + (NOW() - date_trunc('day', NOW()))
        ) AS previous_orders,
        COALESCE(SUM(total_amount) FILTER (
-         WHERE created_at >= date_trunc('day', NOW()) - INTERVAL '1 day'
-         AND created_at < date_trunc('day', NOW())
+         WHERE status = 'completed'
+         AND created_at >= date_trunc('day', NOW()) - INTERVAL '1 day'
+         AND created_at < date_trunc('day', NOW()) - INTERVAL '1 day'
+           + (NOW() - date_trunc('day', NOW()))
        ), 0) AS previous_revenue
      FROM orders`
   );
 
   const row = result.rows[0];
   return {
+    comparison_mode: "same_time_window",
+    hours_elapsed: Number(row.hours_elapsed),
     current_orders: Number(row.current_orders),
     current_revenue: Number(row.current_revenue),
     current_cancelled: Number(row.current_cancelled),
+    current_total_orders: Number(row.current_total_orders),
     previous_orders: Number(row.previous_orders),
     previous_revenue: Number(row.previous_revenue),
   };

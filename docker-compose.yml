@@ -41,9 +41,31 @@ services:
     networks:
       - dashauto_net
 
+  jenkins:
+    build:
+      context: ./jenkins
+      dockerfile: Dockerfile
+    container_name: dashauto-jenkins
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - ./jenkins/plugins.txt:/usr/share/jenkins/ref/plugins.txt:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      JAVA_OPTS: "-Duser.timezone=Asia/Ho_Chi_Minh"
+      JENKINS_GIT_URL: ${JENKINS_GIT_URL:-https://github.com/TranThaoNguyen13/dashauto-server.git}
+    group_add:
+      - "${DOCKER_GID:-984}"
+    networks:
+      - dashauto_net
+
 volumes:
   dashauto_pgdata:
   dashauto_n8n:
+  jenkins_home:
 
 networks:
   dashauto_net:
