@@ -63,3 +63,15 @@ exports.getSummary = async () => {
     lastStatus: r.last_status,
   }));
 };
+exports.create = async (data) => {
+  const { workflow_name, status, message } = data;
+
+  const result = await db.query(
+    `INSERT INTO workflow_logs (workflow_name, status, message, executed_at)
+     VALUES ($1, $2, $3, NOW())
+     RETURNING *`,
+    [workflow_name, status, message]
+  );
+
+  return result.rows[0];
+};

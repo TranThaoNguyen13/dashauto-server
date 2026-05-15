@@ -21,6 +21,10 @@ app.use("/api/dashboard", require("./routes/dashboard.routes"));
 app.use("/api/reports", require("./routes/report.routes"));
 app.use("/api/alerts", require("./routes/alert.routes"));
 app.use("/api/workflows", require("./routes/workflow.routes"));
+<<<<<<< HEAD
 app.use("/api/automation", require("./routes/automation.routes"));
+=======
+app.use("/api/orders", require("./routes/order.routes"));
+>>>>>>> f5c6a1c (add orders API and workflow log creation)
 
 module.exports = app;

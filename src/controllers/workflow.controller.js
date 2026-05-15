@@ -36,3 +36,11 @@ exports.create = async (req, res) => {
     });
   }
 };
+exports.create = async (req, res) => {
+  try {
+    const data = await workflowService.create(req.body);
+    res.status(201).json(data);
+  } catch (err) {
+    res.status(err.status || 500).json({ message: err.message });
+  }
+};
