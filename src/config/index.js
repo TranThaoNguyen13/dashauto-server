@@ -11,4 +11,8 @@ module.exports = {
     password: process.env.DB_PASSWORD || "dashauto123",
     database: process.env.DB_NAME || "dashauto_db",
   },
+  openai: {
+    apiKey: process.env.OPENAI_API_KEY || "",
+    model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+  },
 };

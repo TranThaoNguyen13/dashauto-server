@@ -1,0 +1,259 @@
+{
+  "name": "hourly_orders_check",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 2
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [-624, 96],
+      "id": "f61ed4c8-18a2-44e4-a066-9d2015bbd002",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "http://172.17.0.1:5000/api/automation/orders/hourly-stats",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [-416, 96],
+      "id": "756d9d01-1670-4e67-ae2c-66074b18d486",
+      "name": "Get Hourly Orders Stats"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\n\nfunction unwrapStats(payload) {\n  if (!payload || typeof payload !== 'object') return null;\n  if (payload.completed_orders !== undefined || payload.total_orders !== undefined) {\n    return payload;\n  }\n  if (payload.body !== undefined) {\n    if (typeof payload.body === 'string') {\n      try {\n        return JSON.parse(payload.body);\n      } catch {\n        return null;\n      }\n    }\n    return payload.body;\n  }\n  if (payload.data && typeof payload.data === 'object') {\n    return payload.data;\n  }\n  return null;\n}\n\nconst stats = unwrapStats(raw);\nif (!stats) {\n  throw new Error(\n    'Không đọc được thống kê từ backend. Hãy chạy server (npm start, port 5000) và kiểm tra URL http://172.17.0.1:5000'\n  );\n}\n\nconst completedOrders = Number(stats.completed_orders ?? 0);\nconst totalOrders = Number(stats.total_orders ?? 0);\nconst totalRevenue = Number(stats.total_revenue ?? 0);\n\nlet alert_level = 'normal';\nlet type = 'normal';\nlet severity = 'info';\nlet message = `Bình thường: ${completedOrders} đơn hoàn thành trong 1 giờ qua`;\n\nif (completedOrders === 0) {\n  alert_level = 'critical';\n  type = 'low_order_rate';\n  severity = 'critical';\n  message = `Không có đơn hàng hoàn thành trong 1 giờ qua. Doanh thu: ${totalRevenue.toLocaleString('vi-VN')}đ`;\n} else if (completedOrders < 3) {\n  alert_level = 'warning';\n  type = 'low_order_rate';\n  severity = 'warning';\n  message = `Số đơn hoàn thành thấp: chỉ có ${completedOrders} đơn trong 1 giờ qua`;\n}\n\nreturn [{\n  alert_level,\n  type,\n  severity,\n  status: 'open',\n  message,\n  completed_orders: completedOrders,\n  total_orders: totalOrders,\n  total_revenue: totalRevenue,\n  checked_at: new Date().toISOString(),\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-208, 96],
+      "id": "535abe1b-3436-4075-ba53-26840cae5fe8",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "fde27085-a3be-48ad-a926-ba62a19abb5a",
+              "leftValue": "={{ $json.alert_level }}",
+              "rightValue": "normal",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [0, 96],
+      "id": "0b294867-94a8-41b5-9ce5-03c723639336",
+      "name": "Alert Level != normal"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'http://172.17.0.1:5000/api/automation/alerts/open?type=' + encodeURIComponent($('Code in JavaScript').item.json.type) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [224, -32],
+      "id": "5f400902-57e6-480c-8bb9-239f41c320c9",
+      "name": "Check Existing Open Alert"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "8b2d9473-9654-47ff-b8ed-b31aaae4bd63",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": {},
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [448, -32],
+      "id": "20898b2f-6685-4fe7-99f6-bcb2228846d6",
+      "name": "Alert Already Open?"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=http://172.17.0.1:5000/api/automation/alerts/{{ $json.id }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { message: $('Code in JavaScript').item.json.message, severity: $('Code in JavaScript').item.json.severity } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [672, -128],
+      "id": "ebc950b7-045b-475f-80ea-a213b4002d5b",
+      "name": "Update Existing Alert"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://172.17.0.1:5000/api/automation/alerts",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { type: $('Code in JavaScript').item.json.type, message: $('Code in JavaScript').item.json.message, severity: $('Code in JavaScript').item.json.severity, status: 'open' } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [672, 64],
+      "id": "6182587e-83a6-46c8-bb57-dc2680612746",
+      "name": "Create New Alert"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://172.17.0.1:5000/api/automation/workflow-logs",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { workflow_name: 'hourly_orders_check', status: $('Code in JavaScript').item.json.severity, message: $('Code in JavaScript').item.json.message } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [896, -32],
+      "id": "8f68c1ad-8f2a-4151-a170-bf932f3e13d5",
+      "name": "Log Alert Workflow"
+    },
+    {
+      "parameters": {
+        "fromEmail": "nhungnguyen.14082005@gmail.com",
+        "toEmail": "nhungnth.23ite@vku.udn.vn",
+        "subject": "=[{{$('Code in JavaScript').item.json.severity}}] Canh bao don hang 1 gio - DashAuto",
+        "html": "=Loai canh bao: {{ $('Code in JavaScript').item.json.type }}\n\nNoi dung:\n{{ $('Code in JavaScript').item.json.message }}\n\nKPI (1 gio qua):\n- Don hoan thanh: {{ $('Code in JavaScript').item.json.completed_orders }}\n- Tong don: {{ $('Code in JavaScript').item.json.total_orders }}\n- Doanh thu: {{ $('Code in JavaScript').item.json.total_revenue }}\n- Thoi gian kiem tra: {{ $('Code in JavaScript').item.json.checked_at }}\n\n---\nDashAuto Automation (hourly_orders_check)",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [896, 64],
+      "id": "f351a07e-1cc2-4943-8565-b3cf6debcfa3",
+      "name": "Send an Email",
+      "webhookId": "d34e0254-af25-4015-a63e-028317471381",
+      "credentials": {
+        "smtp": {
+          "id": "1HNJyw2FZkrYcGxD",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://172.17.0.1:5000/api/automation/workflow-logs",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"workflow_name\": \"hourly_orders_check\",\n  \"status\": \"success\",\n  \"message\": \"Binh thuong - khong tao canh bao moi\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [224, 224],
+      "id": "28e0d3d3-9bb7-44fb-ba29-b8e612483027",
+      "name": "Log Normal Workflow"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [[{ "node": "Get Hourly Orders Stats", "type": "main", "index": 0 }]]
+    },
+    "Get Hourly Orders Stats": {
+      "main": [[{ "node": "Code in JavaScript", "type": "main", "index": 0 }]]
+    },
+    "Code in JavaScript": {
+      "main": [[{ "node": "Alert Level != normal", "type": "main", "index": 0 }]]
+    },
+    "Alert Level != normal": {
+      "main": [
+        [{ "node": "Check Existing Open Alert", "type": "main", "index": 0 }],
+        [{ "node": "Log Normal Workflow", "type": "main", "index": 0 }]
+      ]
+    },
+    "Check Existing Open Alert": {
+      "main": [[{ "node": "Alert Already Open?", "type": "main", "index": 0 }]]
+    },
+    "Alert Already Open?": {
+      "main": [
+        [{ "node": "Update Existing Alert", "type": "main", "index": 0 }],
+        [{ "node": "Create New Alert", "type": "main", "index": 0 }]
+      ]
+    },
+    "Update Existing Alert": {
+      "main": [[{ "node": "Log Alert Workflow", "type": "main", "index": 0 }]]
+    },
+    "Create New Alert": {
+      "main": [[{ "node": "Send an Email", "type": "main", "index": 0 }]]
+    },
+    "Send an Email": {
+      "main": [[{ "node": "Log Alert Workflow", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "cd2036dc-b9a8-414f-900b-068df937fcdc",
+  "meta": {
+    "instanceId": "6a6bfee5e350f964abf885434ff2da90f66666f3f239705b6ef882b3f56712fe"
+  },
+  "id": "1DFSE5CQLpVzEWHU",
+  "tags": []
+}

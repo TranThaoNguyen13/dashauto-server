@@ -58,6 +58,41 @@ exports.create = async ({ type, message, severity = "high", status = "open" }) =
   return result.rows[0];
 };
 
+exports.findOpenByType = async (type) => {
+  if (!type) {
+    throw { status: 400, message: "Thieu type" };
+  }
+
+  const result = await db.query(
+    `SELECT id, type, message, severity, status, created_at
+     FROM alerts
+     WHERE type = $1 AND status = 'open'
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [type]
+  );
+
+  return result.rows[0] || null;
+};
+
+exports.updateOpen = async (id, { message, severity }) => {
+  const result = await db.query(
+    `UPDATE alerts
+     SET message = $2,
+         severity = $3,
+         created_at = NOW()
+     WHERE id = $1 AND status = 'open'
+     RETURNING id, type, message, severity, status, created_at`,
+    [id, message, severity]
+  );
+
+  if (result.rowCount === 0) {
+    throw { status: 404, message: "Khong tim thay canh bao dang mo" };
+  }
+
+  return result.rows[0];
+};
+
 exports.resolve = async (id) => {
   const result = await db.query(
     `UPDATE alerts

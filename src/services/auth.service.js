@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 const config = require("../config");
 const db = require("../db");
 
-exports.register = async ({ username, password, role }) => {
+exports.register = async ({ username, password }) => {
   const existed = await db.query("SELECT id FROM users WHERE username = $1", [username]);
   if (existed.rowCount > 0) {
     throw { status: 400, message: "Username da ton tai" };
@@ -12,8 +12,10 @@ exports.register = async ({ username, password, role }) => {
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const result = await db.query(
-    "INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING id",
-    [username, hashedPassword, role || "viewer"]
+    `INSERT INTO users (username, password, role, is_active)
+     VALUES ($1, $2, 'viewer', true)
+     RETURNING id`,
+    [username, hashedPassword]
   );
 
   return { userId: result.rows[0].id };
@@ -21,7 +23,7 @@ exports.register = async ({ username, password, role }) => {
 
 exports.login = async ({ username, password }) => {
   const result = await db.query(
-    "SELECT id, username, password, role FROM users WHERE username = $1",
+    "SELECT id, username, password, role, is_active FROM users WHERE username = $1",
     [username]
   );
 
@@ -30,6 +32,10 @@ exports.login = async ({ username, password }) => {
   }
 
   const user = result.rows[0];
+
+  if (user.is_active === false) {
+    throw { status: 403, message: "Tai khoan da bi vo hieu hoa" };
+  }
 
   const valid = await bcrypt.compare(password, user.password);
   if (!valid) {
